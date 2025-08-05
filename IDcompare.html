@@ -70,7 +70,7 @@
     <div id="results" class="mb-6 hidden">
       <h2 class="text-lg font-semibold mb-2">Results</h2>
 
-      <div id="allLists" class="mb-4">
+      <div id="allLists" class="mb-4 hidden">
         <h3 class="text-md font-medium mb-1">In All Lists</h3>
         <div class="flex gap-2 mb-2">
           <button onclick="copyToClipboard('all')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
@@ -130,6 +130,29 @@
       let lists = {};
       let pasteCount = 0;
 
+      // Console test for comparison logic
+      function runComparisonTest() {
+        console.log('Running test for 8-digit number comparison logic...');
+        // Hardcoded test data: two lists of 8-digit numbers
+        const testList1 = new Set(['12345678', '23456789', '34567890', '45678901']);
+        const testList2 = new Set(['23456789', '34567890', '56789012', '67890123']);
+        
+        // Compute overlapping and unique numbers
+        const overlapping = new Set([...testList1].filter(x => testList2.has(x)));
+        const uniqueToList1 = new Set([...testList1].filter(x => !testList2.has(x)));
+        const uniqueToList2 = new Set([...testList2].filter(x => !testList1.has(x)));
+        
+        // Log results to console
+        console.log('Test List 1:', Array.from(testList1));
+        console.log('Test List 2:', Array.from(testList2));
+        console.log('Overlapping Numbers (in both lists):', Array.from(overlapping));
+        console.log('Unique to List 1:', Array.from(uniqueToList1));
+        console.log('Unique to List 2:', Array.from(uniqueToList2));
+        console.log('Comparison logic test completed.');
+      }
+      // Run the test on page load
+      runComparisonTest();
+
       // Add pasted content to lists
       document.getElementById('addPaste').addEventListener('click', () => {
         const pasteInput = document.getElementById('pasteInput');
@@ -188,13 +211,19 @@
           const text = lists[name];
           const matches = text.match(/\b\d{8}\b/g) || [];
           idSets[name] = new Set(matches);
-          console.log(`IDs extracted from ${name}:`, matches); // Debug log for extracted IDs
+          console.log(`IDs extracted from ${name}:`, Array.from(idSets[name])); // Debug log for extracted IDs as Set
         });
 
-        // Compute intersection of all lists
+        // Compute intersection of all lists and conditionally show "In All Lists"
         const allIntersection = computeIntersection(Object.values(idSets));
         console.log('Intersection of all lists:', Array.from(allIntersection)); // Debug log for intersection
-        displayIDs('all', allIntersection);
+        const allListsSection = document.getElementById('allLists');
+        if (listNames.length >= 3) {
+          allListsSection.classList.remove('hidden');
+          displayIDs('all', allIntersection);
+        } else {
+          allListsSection.classList.add('hidden');
+        }
 
         // Setup comparison dropdowns if 3+ lists
         const comparisonSelect = document.getElementById('comparisonSelect');
@@ -260,12 +289,17 @@
         const onlyFirst = new Set([...firstSet].filter(x => !secondSet.has(x)));
         const onlySecond = new Set([...secondSet].filter(x => !firstSet.has(x)));
 
+        // Debug logs to verify the computed sets
+        console.log(`Comparison Debug - Both (${firstName} & ${secondName}):`, Array.from(both));
+        console.log(`Comparison Debug - Only in ${firstName}:`, Array.from(onlyFirst));
+        console.log(`Comparison Debug - Only in ${secondName}:`, Array.from(onlySecond));
+
         displayIDs('both', both);
         displayIDs('first', onlyFirst);
         displayIDs('second', onlySecond);
       }
 
-      // Display IDs as space-separated strings inside divs
+      // Display IDs as space-separated strings inside divs using explicit DOM manipulation
       function displayIDs(type, idSet) {
         const container = document.getElementById(`${type}IDs`);
         if (!container) {
@@ -273,19 +307,47 @@
           return;
         }
         const ids = Array.from(idSet).sort();
+        console.log(`Display Debug - Rendering IDs for ${type}:`, ids); // Debug log to confirm data before rendering
+        
+        // Clear existing content
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+        
         if (container.tagName.toLowerCase() === 'ul') {
-          // fallback, if any ul exists - convert to <li>
-          container.innerHTML = ids.length > 0 ? ids.map(id => `<li class="cursor-pointer hover:text-blue-400" onclick="showIDDetails('${id}')">${id}</li>`).join('') : '<li>No IDs found.</li>';
-        } else {
-          // for div container: show space-separated IDs with clickable spans
+          // Fallback for ul - create li elements
           if (ids.length > 0) {
-            // Create clickable spans for each id
-            container.innerHTML = ids.map(id => `<span class="cursor-pointer hover:text-blue-400 mr-1" onclick="showIDDetails('${id}')">${id}</span>`).join(' ');
+            ids.forEach(id => {
+              const li = document.createElement('li');
+              li.className = 'cursor-pointer hover:text-blue-400';
+              li.textContent = id;
+              li.onclick = () => showIDDetails(id);
+              container.appendChild(li);
+            });
+          } else {
+            const li = document.createElement('li');
+            li.textContent = 'No IDs found.';
+            container.appendChild(li);
+          }
+        } else {
+          // For div container - create span elements
+          if (ids.length > 0) {
+            ids.forEach((id, index) => {
+              const span = document.createElement('span');
+              span.className = 'cursor-pointer hover:text-blue-400 mr-1';
+              span.textContent = id;
+              span.onclick = () => showIDDetails(id);
+              container.appendChild(span);
+              // Add a space text node between spans (except for the last one)
+              if (index < ids.length - 1) {
+                container.appendChild(document.createTextNode(' '));
+              }
+            });
           } else {
             container.textContent = 'No IDs found.';
           }
         }
-        // Store the space separated string for copy/open
+        // Store the space-separated string for copy/open
         container.dataset.ids = ids.join(' ');
       }
 
@@ -321,9 +383,17 @@
       function copyToClipboard(type) {
         const container = document.getElementById(`${type}IDs`);
         const text = container.dataset.ids || '';
+        console.log(`Copy Debug - Type: ${type}, Text to copy: "${text}"`); // Debug log to confirm data
         if (text) {
-          navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'), () => alert('Failed to copy.'));
+          navigator.clipboard.writeText(text).then(() => {
+            console.log(`Copy Debug - Successfully copied: "${text}"`);
+            alert('Copied to clipboard!');
+          }, () => {
+            console.error('Copy Debug - Failed to copy.');
+            alert('Failed to copy. Your browser may not support clipboard access.');
+          });
         } else {
+          console.warn(`Copy Debug - No IDs to copy for type: ${type}`);
           alert('No IDs to copy.');
         }
       }
@@ -332,11 +402,19 @@
       function openURL(type) {
         const container = document.getElementById(`${type}IDs`);
         const text = container.dataset.ids || '';
+        console.log(`Open URL Debug - Type: ${type}, IDs for URL: "${text}"`); // Debug log to confirm data
         if (text) {
           const ids = text.split(' ').filter(Boolean);
           const url = `https://umass.campus.eab.com/search?keyword=${ids.join('+')}`;
-          window.open(url, '_blank');
+          console.log(`Open URL Debug - Opening URL: ${url}`);
+          try {
+            window.open(url, '_blank');
+          } catch (error) {
+            console.error('Open URL Debug - Error opening URL:', error);
+            alert('Failed to open URL. Please check browser permissions.');
+          }
         } else {
+          console.warn(`Open URL Debug - No IDs to open for type: ${type}`);
           alert('No IDs to open.');
         }
       }
