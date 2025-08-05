@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID Extractor & Comparator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom styles for overflow and modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 50;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal-content {
+      background-color: #2d3748;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #4b5563;
+      width: 80%;
+      max-width: 500px;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4 text-center">ID Extractor & Comparator</h1>
+
+    <!-- Input Section -->
+    <div class="mb-6">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">Upload Files (Multiple Allowed)</label>
+        <input type="file" id="fileInput" multiple
+          class="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">Paste Text</label>
+        <textarea id="pasteInput" placeholder="Paste text here..."
+          class="w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"></textarea>
+        <input type="text" id="pasteName" placeholder="Custom name for pasted content (optional)"
+          class="mt-2 w-full p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <button id="addPaste" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md mr-2">Add Pasted Content</button>
+      <button id="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-md">Submit</button>
+    </div>
+
+    <!-- Lists Preview -->
+    <div id="listsPreview" class="mb-6">
+      <h2 class="text-lg font-semibold mb-2">Added Lists</h2>
+      <ul id="listNames" class="list-disc list-inside text-gray-300"></ul>
+    </div>
+
+    <!-- Comparison Dropdowns (for 3+ lists) -->
+    <div id="comparisonSelect" class="mb-4 hidden">
+      <h2 class="text-lg font-semibold mb-2">Select Lists to Compare</h2>
+      <div class="flex gap-4">
+        <select id="firstList" class="p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+        <select id="secondList" class="p-2 bg-gray-800 border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="mb-6 hidden">
+      <h2 class="text-lg font-semibold mb-2">Results</h2>
+      <div id="allLists" class="mb-4">
+        <h3 class="text-md font-medium mb-1">In All Lists</h3>
+        <div class="flex gap-2 mb-2">
+          <button onclick="copyToClipboard('all')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+          <button onclick="openURL('all')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+        </div>
+        <ul id="allIDs" class="list-disc list-inside text-gray-300 max-h-60 overflow-y-auto"></ul>
+      </div>
+      <div id="comparisonResults" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <h3 class="text-md font-medium mb-1">In Both</h3>
+          <div class="flex gap-2 mb-2">
+            <button onclick="copyToClipboard('both')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button onclick="openURL('both')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+          </div>
+          <ul id="bothIDs" class="list-disc list-inside text-gray-300 max-h-60 overflow-y-auto"></ul>
+        </div>
+        <div>
+          <h3 class="text-md font-medium mb-1" id="onlyFirstLabel">Only in First</h3>
+          <div class="flex gap-2 mb-2">
+            <button onclick="copyToClipboard('first')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button onclick="openURL('first')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+          </div>
+          <ul id="onlyFirstIDs" class="list-disc list-inside text-gray-300 max-h-60 overflow-y-auto"></ul>
+        </div>
+        <div>
+          <h3 class="text-md font-medium mb-1" id="onlySecondLabel">Only in Second</h3>
+          <div class="flex gap-2 mb-2">
+            <button onclick="copyToClipboard('second')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button onclick="openURL('second')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+          </div>
+          <ul id="onlySecondIDs" class="list-disc list-inside text-gray-300 max-h-60 overflow-y-auto"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for ID Details -->
+    <div id="idModal" class="modal">
+      <div class="modal-content">
+        <span class="close float-right text-gray-400 hover:text-gray-100 cursor-pointer text-2xl">&times;</span>
+        <h2 class="text-lg font-semibold mb-2">ID Details</h2>
+        <p class="mb-2">ID: <span id="modalID"></span></p>
+        <div class="mb-2">
+          <h3 class="text-md font-medium">Found In:</h3>
+          <ul id="foundIn" class="list-disc list-inside text-gray-300"></ul>
+        </div>
+        <div>
+          <h3 class="text-md font-medium">Not Found In:</h3>
+          <ul id="notFoundIn" class="list-disc list-inside text-gray-300"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lists = {};
+    let pasteCount = 0;
+
+    // Add pasted content to lists
+    document.getElementById('addPaste').addEventListener('click', () => {
+      const pasteInput = document.getElementById('pasteInput');
+      const pasteName = document.getElementById('pasteName').value.trim();
+      if (pasteInput.value.trim() === '') {
+        alert('Please paste some content first.');
+        return;
+      }
+      pasteCount++;
+      const name = pasteName || `Paste ${pasteCount}`;
+      lists[name] = pasteInput.value;
+      updateListPreview();
+      pasteInput.value = '';
+      document.getElementById('pasteName').value = '';
+      alert(`Added pasted content as "${name}".`);
+    });
+
+    // Handle file uploads
+    document.getElementById('fileInput').addEventListener('change', (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          lists[file.name] = event.target.result;
+          updateListPreview();
+        };
+        reader.onerror = () => alert(`Error reading file: ${file.name}`);
+        reader.readAsText(file);
+      });
+      e.target.value = ''; // Reset input
+    });
+
+    // Update preview of added lists
+    function updateListPreview() {
+      const listNames = Object.keys(lists);
+      const ul = document.getElementById('listNames');
+      ul.innerHTML = listNames.length > 0 ? listNames.map(name => `<li>${name}</li>`).join('') : '<li>No lists added yet.</li>';
+    }
+
+    // Submit and process lists
+    document.getElementById('submit').addEventListener('click', () => {
+      const listNames = Object.keys(lists);
+      if (listNames.length < 2) {
+        alert('Please add at least two lists (files or pasted content) to compare.');
+        return;
+      }
+
+      // Extract 8-digit IDs from each list
+      const idSets = {};
+      listNames.forEach(name => {
+        const text = lists[name];
+        const matches = text.match(/\b\d{8}\b/g) || [];
+        idSets[name] = new Set(matches);
+      });
+
+      // Compute intersection of all lists
+      const allIntersection = computeIntersection(Object.values(idSets));
+      displayIDs('all', allIntersection);
+
+      // Setup comparison dropdowns if 3+ lists
+      const comparisonSelect = document.getElementById('comparisonSelect');
+      if (listNames.length >= 3) {
+        comparisonSelect.classList.remove('hidden');
+        const firstSelect = document.getElementById('firstList');
+        const secondSelect = document.getElementById('secondList');
+        firstSelect.innerHTML = listNames.map((name, i) => `<option value="${name}" ${i === 0 ? 'selected' : ''}>${name}</option>`).join('');
+        secondSelect.innerHTML = listNames.map((name, i) => `<option value="${name}" ${i === 1 ? 'selected' : ''}>${name}</option>`).join('');
+        updateComparison(idSets, listNames[0], listNames[1]);
+      } else {
+        comparisonSelect.classList.add('hidden');
+        updateComparison(idSets, listNames[0], listNames[1]);
+      }
+      document.getElementById('results').classList.remove('hidden');
+    });
+
+    // Listen for dropdown changes
+    document.getElementById('firstList').addEventListener('change', (e) => {
+      const secondList = document.getElementById('secondList').value;
+      updateComparison(getIDSets(), e.target.value, secondList);
+    });
+    document.getElementById('secondList').addEventListener('change', (e) => {
+      const firstList = document.getElementById('firstList').value;
+      updateComparison(getIDSets(), firstList, e.target.value);
+    });
+
+    function getIDSets() {
+      const idSets = {};
+      Object.keys(lists).forEach(name => {
+        const text = lists[name];
+        const matches = text.match(/\b\d{8}\b/g) || [];
+        idSets[name] = new Set(matches);
+      });
+      return idSets;
+    }
+
+    function computeIntersection(sets) {
+      if (sets.length === 0) return new Set();
+      return sets.reduce((acc, curr) => new Set([...acc].filter(x => curr.has(x))));
+    }
+
+    function updateComparison(idSets, firstName, secondName) {
+      document.getElementById('onlyFirstLabel').textContent = `Only in ${firstName}`;
+      document.getElementById('onlySecondLabel').textContent = `Only in ${secondName}`;
+      const firstSet = idSets[firstName];
+      const secondSet = idSets[secondName];
+      const both = new Set([...firstSet].filter(x => secondSet.has(x)));
+      const onlyFirst = new Set([...firstSet].filter(x => !secondSet.has(x)));
+      const onlySecond = new Set([...secondSet].filter(x => !firstSet.has(x)));
+      displayIDs('both', both);
+      displayIDs('first', onlyFirst);
+      displayIDs('second', onlySecond);
+    }
+
+    function displayIDs(type, idSet) {
+      const ul = document.getElementById(`${type}IDs`);
+      const ids = Array.from(idSet).sort();
+      ul.innerHTML = ids.length > 0 ? ids.map(id => `<li class="cursor-pointer hover:text-blue-400" onclick="showIDDetails('${id}')">${id}</li>`).join('') : '<li>No IDs found.</li>';
+      ul.dataset.ids = ids.join(' '); // Store for copy/open
+    }
+
+    function showIDDetails(id) {
+      const modal = document.getElementById('idModal');
+      modal.style.display = 'block';
+      document.getElementById('modalID').textContent = id;
+      const foundIn = [];
+      const notFoundIn = [];
+      Object.keys(lists).forEach(name => {
+        if (lists[name].match(new RegExp(`\\b${id}\\b`))) {
+          foundIn.push(name);
+        } else {
+          notFoundIn.push(name);
+        }
+      });
+      document.getElementById('foundIn').innerHTML = foundIn.length > 0 ? foundIn.map(n => `<li>${n}</li>`).join('') : '<li>None</li>';
+      document.getElementById('notFoundIn').innerHTML = notFoundIn.length > 0 ? notFoundIn.map(n => `<li>${n}</li>`).join('') : '<li>None</li>';
+    }
+
+    // Close modal
+    document.querySelector('.close').addEventListener('click', () => {
+      document.getElementById('idModal').style.display = 'none';
+    });
+    window.addEventListener('click', (event) => {
+      if (event.target === document.getElementById('idModal')) {
+        document.getElementById('idModal').style.display = 'none';
+      }
+    });
+
+    function copyToClipboard(type) {
+      const ul = document.getElementById(`${type}IDs`);
+      const text = ul.dataset.ids || '';
+      if (text) {
+        navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard!'), () => alert('Failed to copy.'));
+      } else {
+        alert('No IDs to copy.');
+      }
+    }
+
+    function openURL(type) {
+      const ul = document.getElementById(`${type}IDs`);
+      const text = ul.dataset.ids || '';
+      if (text) {
+        const ids = text.split(' ').filter(Boolean);
+        const url = `https://umass.campus.eab.com/search?keyword=${ids.join('+')}`;
+        window.open(url, '_blank');
+      } else {
+        alert('No IDs to open.');
+      }
+    }
+  </script>
+</body>
+</html>
