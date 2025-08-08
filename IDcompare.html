@@ -286,8 +286,8 @@
         const secondSet = idSets[secondName] || new Set();
 
         const both = new Set([...firstSet].filter(x => secondSet.has(x)));
-        const onlyFirst = new Set([...firstSet].filter(x => !secondSet.has(x)));
-        const onlySecond = new Set([...secondSet].filter(x => !firstSet.has(x)));
+        const onlyFirst = new Set([...firstSet].filter(x => !secondSet.has(x))); // Unique to first list
+        const onlySecond = new Set([...secondSet].filter(x => !firstSet.has(x))); // Unique to second list
 
         // Debug logs to verify the computed sets
         console.log(`Comparison Debug - Both (${firstName} & ${secondName}):`, Array.from(both));
@@ -295,8 +295,8 @@
         console.log(`Comparison Debug - Only in ${secondName}:`, Array.from(onlySecond));
 
         displayIDs('both', both);
-        displayIDs('first', onlyFirst);
-        displayIDs('second', onlySecond);
+        displayIDs('onlyFirst', onlyFirst);
+        displayIDs('onlySecond', onlySecond);
       }
 
       // Display IDs as space-separated strings inside divs using explicit DOM manipulation
@@ -314,38 +314,23 @@
           container.removeChild(container.firstChild);
         }
         
-        if (container.tagName.toLowerCase() === 'ul') {
-          // Fallback for ul - create li elements
-          if (ids.length > 0) {
-            ids.forEach(id => {
-              const li = document.createElement('li');
-              li.className = 'cursor-pointer hover:text-blue-400';
-              li.textContent = id;
-              li.onclick = () => showIDDetails(id);
-              container.appendChild(li);
-            });
-          } else {
-            const li = document.createElement('li');
-            li.textContent = 'No IDs found.';
-            container.appendChild(li);
-          }
+        // Render IDs as spans in div container
+        if (ids.length > 0) {
+          ids.forEach((id, index) => {
+            const span = document.createElement('span');
+            span.className = 'cursor-pointer hover:text-blue-400 mr-1';
+            span.textContent = id;
+            span.onclick = () => showIDDetails(id);
+            container.appendChild(span);
+            // Add a space text node between spans (except for the last one)
+            if (index < ids.length - 1) {
+              container.appendChild(document.createTextNode(' '));
+            }
+          });
+          console.log(`Display Debug - Successfully rendered ${ids.length} IDs for ${type} in DOM`);
         } else {
-          // For div container - create span elements
-          if (ids.length > 0) {
-            ids.forEach((id, index) => {
-              const span = document.createElement('span');
-              span.className = 'cursor-pointer hover:text-blue-400 mr-1';
-              span.textContent = id;
-              span.onclick = () => showIDDetails(id);
-              container.appendChild(span);
-              // Add a space text node between spans (except for the last one)
-              if (index < ids.length - 1) {
-                container.appendChild(document.createTextNode(' '));
-              }
-            });
-          } else {
-            container.textContent = 'No IDs found.';
-          }
+          container.textContent = 'No IDs found.';
+          console.log(`Display Debug - No IDs to render for ${type}`);
         }
         // Store the space-separated string for copy/open
         container.dataset.ids = ids.join(' ');
