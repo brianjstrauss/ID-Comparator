@@ -27,10 +27,23 @@
       max-width: 500px;
       border-radius: 0.5rem;
     }
+    /* Flash animation for copy button */
+    .flash {
+      animation: flashEffect 0.5s ease-in-out 2;
+    }
+    @keyframes flashEffect {
+      0% { background-color: #4b5563; } /* bg-gray-600 */
+      50% { background-color: #22c55e; } /* bg-green-500 */
+      100% { background-color: #4b5563; }
+    }
   </style>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen p-4">
   <div class="max-w-4xl mx-auto">
+    <!-- Instructions Link -->
+    <div class="relative">
+      <a href="#" id="instructionsLink" class="absolute top-0 right-0 text-sm text-blue-400 hover:text-blue-300">Instructions</a>
+    </div>
     <h1 class="text-2xl font-bold mb-4 text-center">ID Extractor & Comparator</h1>
 
     <!-- Input Section -->
@@ -120,6 +133,25 @@
         <div>
           <h3 class="text-md font-medium">Not Found In:</h3>
           <ul id="notFoundIn" class="list-disc list-inside text-gray-300"></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div id="instructionsModal" class="modal">
+      <div class="modal-content">
+        <span class="close-instructions float-right text-gray-400 hover:text-gray-100 cursor-pointer text-2xl">&times;</span>
+        <h2 class="text-lg font-semibold mb-2">How to Use ID Extractor & Comparator</h2>
+        <div class="text-gray-300">
+          <ul class="list-disc list-inside space-y-2">
+            <li><strong>Upload Files:</strong> Use the "Upload Files" section to select one or more text files containing IDs. Multiple files are supported.</li>
+            <li><strong>Paste Text:</strong> Enter text with IDs directly into the textarea. Optionally, provide a custom name for this content. Click "Add Pasted Content" to include it as a list.</li>
+            <li><strong>Submit:</strong> After adding at least two lists (via files or pasted text), click "Submit" to process and compare the IDs.</li>
+            <li><strong>View Results:</strong> Results will display IDs found in all lists (for 3+ lists), in both selected lists, and unique to each list. Click an ID to see details on where it appears.</li>
+            <li><strong>Select Lists to Compare:</strong> If you have 3 or more lists, use the dropdowns to choose which two lists to compare.</li>
+            <li><strong>Copy IDs:</strong> Click "Copy as Text" for a category of IDs to copy them to your clipboard. The button will flash to confirm.</li>
+            <li><strong>Open URL:</strong> Click "Open URL" to search the IDs in a new browser tab using the configured search URL.</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -364,12 +396,27 @@
         }
       });
 
+      // Instructions Modal Show/Hide
+      document.getElementById('instructionsLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('instructionsModal').style.display = 'block';
+      });
+
+      document.querySelector('.close-instructions').addEventListener('click', () => {
+        document.getElementById('instructionsModal').style.display = 'none';
+      });
+
+      window.addEventListener('click', (event) => {
+        if (event.target === document.getElementById('instructionsModal')) {
+          document.getElementById('instructionsModal').style.display = 'none';
+        }
+      });
+
       // Copy to clipboard functionality for space separated IDs
       function copyToClipboard(type) {
         const container = document.getElementById(`${type}IDs`);
         if (!container) {
           console.error(`Copy Debug - Container for ${type}IDs not found in DOM`);
-          alert('Error: Container not found. Please try again after submitting.');
           return;
         }
         const text = container.dataset.ids || '';
@@ -377,14 +424,17 @@
         if (text) {
           navigator.clipboard.writeText(text).then(() => {
             console.log(`Copy Debug - Successfully copied: "${text}"`);
-            alert('Copied to clipboard!');
+            // Flash the button instead of alert
+            const button = Array.from(document.querySelectorAll('.copy-btn')).find(btn => btn.getAttribute('data-type') === type);
+            if (button) {
+              button.classList.add('flash');
+              setTimeout(() => button.classList.remove('flash'), 1000);
+            }
           }, () => {
             console.error('Copy Debug - Failed to copy.');
-            alert('Failed to copy. Your browser may not support clipboard access.');
           });
         } else {
           console.warn(`Copy Debug - No IDs to copy for type: ${type}`);
-          alert('No IDs to copy.');
         }
       }
 
