@@ -73,8 +73,8 @@
       <div id="allLists" class="mb-4 hidden">
         <h3 class="text-md font-medium mb-1">In All Lists</h3>
         <div class="flex gap-2 mb-2">
-          <button onclick="copyToClipboard('all')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
-          <button onclick="openURL('all')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+          <button data-type="all" class="copy-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+          <button data-type="all" class="open-url-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
         </div>
         <div id="allIDs" class="whitespace-pre-wrap break-words text-gray-300 max-h-60 overflow-y-auto p-2 border border-gray-700 rounded"></div>
       </div>
@@ -83,24 +83,24 @@
         <div>
           <h3 class="text-md font-medium mb-1">In Both</h3>
           <div class="flex gap-2 mb-2">
-            <button onclick="copyToClipboard('both')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
-            <button onclick="openURL('both')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+            <button data-type="both" class="copy-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button data-type="both" class="open-url-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
           </div>
           <div id="bothIDs" class="whitespace-pre-wrap break-words text-gray-300 max-h-60 overflow-y-auto p-2 border border-gray-700 rounded"></div>
         </div>
         <div>
           <h3 class="text-md font-medium mb-1" id="onlyFirstLabel">Only in First</h3>
           <div class="flex gap-2 mb-2">
-            <button onclick="copyToClipboard('first')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
-            <button onclick="openURL('first')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+            <button data-type="onlyFirst" class="copy-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button data-type="onlyFirst" class="open-url-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
           </div>
           <div id="onlyFirstIDs" class="whitespace-pre-wrap break-words text-gray-300 max-h-60 overflow-y-auto p-2 border border-gray-700 rounded"></div>
         </div>
         <div>
           <h3 class="text-md font-medium mb-1" id="onlySecondLabel">Only in Second</h3>
           <div class="flex gap-2 mb-2">
-            <button onclick="copyToClipboard('second')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
-            <button onclick="openURL('second')" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
+            <button data-type="onlySecond" class="copy-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Copy as Text</button>
+            <button data-type="onlySecond" class="open-url-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-md text-sm">Open URL</button>
           </div>
           <div id="onlySecondIDs" class="whitespace-pre-wrap break-words text-gray-300 max-h-60 overflow-y-auto p-2 border border-gray-700 rounded"></div>
         </div>
@@ -367,6 +367,11 @@
       // Copy to clipboard functionality for space separated IDs
       function copyToClipboard(type) {
         const container = document.getElementById(`${type}IDs`);
+        if (!container) {
+          console.error(`Copy Debug - Container for ${type}IDs not found in DOM`);
+          alert('Error: Container not found. Please try again after submitting.');
+          return;
+        }
         const text = container.dataset.ids || '';
         console.log(`Copy Debug - Type: ${type}, Text to copy: "${text}"`); // Debug log to confirm data
         if (text) {
@@ -386,6 +391,11 @@
       // Open URL with space-separated IDs joined by + (e.g. https://...search?keyword=12345678+23456789)
       function openURL(type) {
         const container = document.getElementById(`${type}IDs`);
+        if (!container) {
+          console.error(`Open URL Debug - Container for ${type}IDs not found in DOM`);
+          alert('Error: Container not found. Please try again after submitting.');
+          return;
+        }
         const text = container.dataset.ids || '';
         console.log(`Open URL Debug - Type: ${type}, IDs for URL: "${text}"`); // Debug log to confirm data
         if (text) {
@@ -403,6 +413,21 @@
           alert('No IDs to open.');
         }
       }
+
+      // Attach event listeners to copy and open URL buttons
+      document.querySelectorAll('.copy-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const type = button.getAttribute('data-type');
+          copyToClipboard(type);
+        });
+      });
+
+      document.querySelectorAll('.open-url-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const type = button.getAttribute('data-type');
+          openURL(type);
+        });
+      });
     });
   </script>
 </body>
